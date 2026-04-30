@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import Message
+from aiohttp import web
 
 # ===================== SOZLAMALAR =====================
 API_ID = int(os.environ.get("API_ID", "28466899"))
@@ -12,7 +13,6 @@ SESSION_STRING = os.environ.get("SESSION_STRING", "")
 
 print(f"DEBUG: API_ID = {API_ID}")
 print(f"DEBUG: SESSION_STRING uzunligi = {len(SESSION_STRING)}")
-print(f"DEBUG: SESSION_STRING boshi = {SESSION_STRING[:10] if SESSION_STRING else 'BOSH!'}")
 
 # ===================== MA'LUMOTLAR =====================
 DATA_FILE = "data.json"
@@ -51,21 +51,17 @@ def update_stats(user_id: str, username: str):
 async def auto_reply(client, message: Message):
     if not data["is_active"]:
         return
-
     user_id = str(message.from_user.id)
     if user_id in data["blacklist"]:
         return
-
     user_name = message.from_user.first_name or "Foydalanuvchi"
     username = f"@{message.from_user.username}" if message.from_user.username else "nomalum"
     update_stats(user_id, f"{user_name} ({username})")
-
     await asyncio.sleep(1)
     await message.reply(data["custom_message"])
     print(f"✅ Javob berildi → {user_name}")
 
 # ===================== BUYRUQLAR =====================
-
 @app.on_message(filters.outgoing & filters.regex(r"^\.on$"))
 async def turn_on(client, message: Message):
     data["is_active"] = True
@@ -153,6 +149,30 @@ async def help_cmd(client, message: Message):
         "▸ `.help` — Shu yordam xabari"
     )
 
+# ===================== HTTP SERVER (Render web service uchun) =====================
+async def health(request):
+    holat = "YONIQ" if data["is_active"] else "O'CHIQ"
+    jami = sum(v["count"] for v in data["stats"].values())
+    return web.Response(text=f"Userbot ishlayapti! Holat: {holat} | Jami javob: {jami} ta")
+
+async def start_web():
+    server = web.Application()
+    server.router.add_get("/", health)
+    runner = web.AppRunner(server)
+    await runner.setup()
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"🌐 HTTP server port {port} da ishlamoqda")
+
 # ===================== ISHGA TUSHIRISH =====================
+async def main():
+    await start_web()
+    await app.start()
+    me = await app.get_me()
+    print(f"✅ Userbot ishga tushdi: {me.first_name} (@{me.username})")
+    print(f"📌 Holat: {'YONIQ' if data['is_active'] else 'OCHIQ — .on yozing'}")
+    await asyncio.get_event_loop().create_future()
+
 print("🚀 Userbot ishga tushmoqda...")
-app.run()
+asyncio.run(main())
