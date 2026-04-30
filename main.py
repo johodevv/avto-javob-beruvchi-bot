@@ -1,4 +1,3 @@
-cat > main.py << 'PYEOF'
 import os
 import json
 import asyncio
@@ -177,4 +176,3 @@ async def main():
 
 print("🚀 Userbot ishga tushmoqda...")
 asyncio.run(main())
-PYEOF
