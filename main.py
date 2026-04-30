@@ -42,10 +42,15 @@ def save_data(data):
 data = load_data()
 
 # ===================== TELEGRAM CLIENT =====================
-if SESSION_STRING:
+print(f"DEBUG: API_ID = {API_ID}")
+print(f"DEBUG: SESSION_STRING uzunligi = {len(SESSION_STRING)}")
+print(f"DEBUG: SESSION_STRING boshi = {SESSION_STRING[:20] if SESSION_STRING else 'BOSH!'}")
+
+if SESSION_STRING and len(SESSION_STRING) > 10:
     client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
 else:
-    client = TelegramClient("userbot_session", API_ID, API_HASH)
+    print("XATO: SESSION_STRING env ga to'g'ri kiritilmagan!")
+    exit(1)
 
 # ===================== STATISTIKA =====================
 def update_stats(user_id: str, username: str):
